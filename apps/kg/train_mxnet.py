@@ -59,10 +59,21 @@ def train(args, model, train_sampler, valid_samplers=None, rank=0, rel_parts=Non
     if args.strict_rel_part:
         model.prepare_relation(mx.gpu(gpu_id))
 
+    if args.profiler:
+        from mxnet import profiler
+        profiler.set_config(profile_all=True,
+                            aggregate_stats=True,
+                            continuous_dump=True,
+                            filename='profile_output.json')
+    
     start = time.time()
     for step in range(0, args.max_step):
         pos_g, neg_g = next(train_sampler)
         args.step = step
+
+        if(args.profiler and step == 1):
+            profiler.set_state('run')
+ 
         with mx.autograd.record():
             loss, log = model.forward(pos_g, neg_g, gpu_id)
         loss.backward()
@@ -81,9 +92,16 @@ def train(args, model, train_sampler, valid_samplers=None, rank=0, rel_parts=Non
             start = time.time()
             test(args, model, valid_samplers, mode='Valid')
             print('test:', time.time() - start)
+
+    if args.profiler:
+        nd.waitall()
+        profiler.set_state('stop')
+        profiler.dump()
+        print(profiler.dumps())
     if args.strict_rel_part:
         model.writeback_relation(rank, rel_parts)
 
+    
     # clear cache
     logs = []
 

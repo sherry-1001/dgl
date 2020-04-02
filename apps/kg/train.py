@@ -125,6 +125,8 @@ class ArgParser(argparse.ArgumentParser):
                           help='allow async_update on node embedding')
         self.add_argument('--force_sync_interval', type=int, default=-1,
                           help='We force a synchronization between processes every x steps')
+        self.add_argument('--profiler', action='store_true',
+                          help='if use profiler when analysising performance')
 
 
 def get_logger(args):
